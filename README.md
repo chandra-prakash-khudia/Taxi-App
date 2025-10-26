@@ -99,6 +99,8 @@ taxi-app/
 ├── 📄 ARCHITECTURE.md              # Complete system architecture
 ├── 📄 WORKFLOWS.md                 # Technical workflows & diagrams  
 ├── 📄 API_DOCUMENTATION.md         # Complete API reference
+├── 📄 UML_DIAGRAM.puml             # UML class diagram (PlantUML)
+├── 📄 UML_DOCUMENTATION.md         # UML diagram documentation
 └── 📄 README.md                    # This file
 ```
 
@@ -292,8 +294,9 @@ The application provides comprehensive RESTful APIs:
 
 For comprehensive system architecture, technical workflows, and implementation details:
 
-📐 **[System Architecture Documentation](./ARCHITECTURE.md)**
-🔄 **[Technical Workflows & Diagrams](./WORKFLOWS.md)**
+📐 **[System Architecture Documentation](./ARCHITECTURE.md)**  
+🔄 **[Technical Workflows & Diagrams](./WORKFLOWS.md)**  
+📊 **[UML Class Diagram Documentation](./UML_DOCUMENTATION.md)** - Complete UML class diagram with system components
 
 ## 🚀 Production Deployment
 
