@@ -1,0 +1,38 @@
+name: Generate UML Diagram
+on:
+  push:
+    paths:
+      - 'UML_DIAGRAM.puml'
+  pull_request:
+    paths:
+      - 'UML_DIAGRAM.puml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Render PlantUML to PNG
+        run: |
+          echo "Rendering UML_DIAGRAM.puml to UML_DIAGRAM.png"
+          docker run --rm -v "${{ github.workspace }}":/workspace plantuml/plantuml -tpng /workspace/UML_DIAGRAM.puml
+
+      - name: Commit and push diagram
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          if [ -n "${GITHUB_HEAD_REF}" ]; then BRANCH="${GITHUB_HEAD_REF}"; fi
+          git add UML_DIAGRAM.png || true
+          if git diff --quiet --staged; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: generate UML diagram from UML_DIAGRAM.puml"
+          git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:"$BRANCH"
