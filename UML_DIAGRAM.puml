@@ -1,0 +1,253 @@
+@startuml Taxi_App_UML_Diagram
+
+' === Styling ===
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+title Taxi App - UML Class Diagram
+
+' === Data Models ===
+package "Data Models" {
+    class User {
+        - _id: ObjectId
+        - fullname: Object
+          - firstname: String
+          - lastname: String
+        - email: String
+        - password: String (hashed)
+        - socketId: String
+        - createdAt: Date
+        - updatedAt: Date
+        --
+        + generateAuthToken(): String
+        + comparePassword(password): Boolean
+        {static} + hashPassword(password): String
+    }
+
+    class Captain {
+        - _id: ObjectId
+        - fullname: Object
+          - firstname: String
+          - lastname: String
+        - email: String
+        - password: String (hashed)
+        - socketId: String
+        - status: String (active|inactive)
+        - vehicle: Object
+          - color: String
+          - plate: String
+          - capacity: Number
+          - vehicleType: String (car|motorcycle|auto)
+        - location: Object
+          - ltd: Number (latitude)
+          - lng: Number (longitude)
+        - createdAt: Date
+        - updatedAt: Date
+        --
+        + generateAuthToken(): String
+        + comparePassword(password): Boolean
+        {static} + hashPassword(password): String
+    }
+
+    class Ride {
+        - _id: ObjectId
+        - user: ObjectId (ref: User)
+        - captain: ObjectId (ref: Captain)
+        - pickup: String
+        - destination: String
+        - fare: Number
+        - status: String (pending|accepted|ongoing|completed|cancelled)
+        - duration: Number (seconds)
+        - distance: Number (meters)
+        - paymentID: String
+        - orderId: String
+        - signature: String
+        - otp: String
+        - createdAt: Date
+        - updatedAt: Date
+    }
+
+    class BlacklistToken {
+        - _id: ObjectId
+        - token: String
+        - createdAt: Date (expires after 24h)
+    }
+}
+
+' === Services Layer ===
+package "Services Layer" {
+    class UserService {
+        + createUser(userData): User
+        + loginUser(email, password): Object
+        + getUserProfile(userId): User
+    }
+
+    class CaptainService {
+        + createCaptain(captainData): Captain
+        + loginCaptain(email, password): Object
+    }
+
+    class RideService {
+        + createRide(rideData): Ride
+        + getFare(pickup, destination): Number
+        + confirmRide(rideId, captainId): Ride
+        + startRide(rideId, otp): Ride
+        + endRide(rideId): Ride
+        + getIncompletedRides(captainId): Array<Ride>
+    }
+
+    class MapsService {
+        + getAddressCoordinate(address): Coordinates
+        + getDistanceTime(origin, destination): Object
+        + getAutoCompleteSuggestions(input): Array<String>
+        + getCaptainsInTheRadius(ltd, lng, radius): Array<Captain>
+    }
+}
+
+' === Controllers Layer ===
+package "Controllers Layer" {
+    class UserController {
+        + registerUser(req, res)
+        + loginUser(req, res)
+        + getUserProfile(req, res)
+        + logoutUser(req, res)
+    }
+
+    class CaptainController {
+        + registerCaptain(req, res)
+        + loginCaptain(req, res)
+        + getCaptainProfile(req, res)
+        + logoutCaptain(req, res)
+    }
+
+    class RideController {
+        + createRide(req, res)
+        + getFare(req, res)
+        + confirmRide(req, res)
+        + startRide(req, res)
+        + endRide(req, res)
+    }
+
+    class MapController {
+        + getCoordinates(req, res)
+        + getDistanceTime(req, res)
+        + getAutoCompleteSuggestions(req, res)
+    }
+}
+
+' === Middleware ===
+package "Middleware" {
+    class AuthMiddleware {
+        + authUser(req, res, next)
+        + authCaptain(req, res, next)
+    }
+}
+
+' === Routes ===
+package "Routes" {
+    class UserRoutes {
+        + POST /users/register
+        + POST /users/login
+        + GET /users/profile
+        + GET /users/logout
+    }
+
+    class CaptainRoutes {
+        + POST /captains/register
+        + POST /captains/login
+        + GET /captains/profile
+        + GET /captains/logout
+    }
+
+    class RideRoutes {
+        + POST /rides/create
+        + GET /rides/get-fare
+        + POST /rides/confirm
+        + GET /rides/start-ride
+        + POST /rides/end-ride
+    }
+
+    class MapRoutes {
+        + GET /maps/get-coordinates
+        + GET /maps/get-distance-time
+        + GET /maps/get-suggestions
+    }
+}
+
+' === External Services ===
+package "External Services" {
+    class GoogleMapsAPI {
+        + geocode(address): Coordinates
+        + distanceMatrix(origin, destination): Object
+        + placesAutocomplete(input): Array
+    }
+}
+
+' === Relationships ===
+
+' Model Relationships
+Ride "1" --> "1" User : has
+Ride "1" --> "0..1" Captain : assigned to
+
+' Controller to Service
+UserController --> UserService : uses
+CaptainController --> CaptainService : uses
+RideController --> RideService : uses
+MapController --> MapsService : uses
+
+' Service to Model
+UserService --> User : manages
+CaptainService --> Captain : manages
+RideService --> Ride : manages
+RideService --> User : references
+RideService --> Captain : references
+MapsService --> Captain : queries
+
+' Service to External
+MapsService --> GoogleMapsAPI : integrates
+
+' Routes to Controller
+UserRoutes --> UserController : routes to
+CaptainRoutes --> CaptainController : routes to
+RideRoutes --> RideController : routes to
+MapRoutes --> MapController : routes to
+
+' Middleware
+UserRoutes --> AuthMiddleware : protected by
+CaptainRoutes --> AuthMiddleware : protected by
+RideRoutes --> AuthMiddleware : protected by
+
+' Auth related
+AuthMiddleware --> BlacklistToken : checks
+AuthMiddleware --> User : validates
+AuthMiddleware --> Captain : validates
+
+' === Notes ===
+note right of Ride
+  Ride lifecycle:
+  pending → accepted → 
+  ongoing → completed
+end note
+
+note right of Captain
+  Real-time location
+  tracking via socketId
+end note
+
+note right of User
+  JWT authentication
+  with bcrypt password
+end note
+
+note bottom of GoogleMapsAPI
+  External API for:
+  - Geocoding
+  - Distance calculation
+  - Address autocomplete
+end note
+
+@enduml
